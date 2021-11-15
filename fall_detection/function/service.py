@@ -179,7 +179,7 @@ def pre_datalist(dataList,dirPath,dirPath_pre,data_path,data_path_pre):
         if os.path.isfile(path):
             temp_data = get_data(path)
             # 数据预处理
-            temp_data = pre_handle(temp_data)
+            temp_data = pre_handle_onlysmooth(temp_data)
             # 数据截取
             temp_data = data_cut(temp_data)
             print(temp_data.shape)
@@ -396,14 +396,15 @@ def get_file(trans, frompath, topath,model_path):
         print("读取文件位置" + str(curpin))
         get_amplitude_phase_etc(x,model_path)
         i=i+1
-        if(i==20):
-            ssh.exec_command("du -s " + "/home/rtlab420/test.dat")
-            ssh1.exec_command("du -s " + "/home/rtlab420/test.dat")
-            ssh1.exec_command("/home/rtlab420/clean_test.sh")
+        if(i==10):
+            ssh.exec_command("du -s " + RX_FLIE+"/test.dat")
+            ssh1.exec_command("du -s " + RX_FLIE+"/test.dat")
+            ssh1.exec_command(RX_FLIE+"/clean_test.sh")
             time.sleep(0.5)
-            ssh1.exec_command("/home/rtlab420/ping.sh")
+            ssh1.exec_command(RX_FLIE+"/ping.sh")
             time.sleep(1)
-            ssh.exec_command("/home/rtlab420/log.sh test")
+            ssh.exec_command(RX_FLIE+"/log.sh test")
+            print("i",i)
             curpin = 0
             i=0
             #print("i",i)

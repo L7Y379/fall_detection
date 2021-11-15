@@ -89,9 +89,9 @@ def connect_rx():
             #ssh.exec_command(RX_FLIE+"/ping.sh")
             # ssh.exec_command(RX_FLIE+"/monitor_wifi_on.sh")
             # time.sleep(1)
-            ssh.exec_command(RX_FLIE + "/monitor_wifi_on.sh")
+            #ssh.exec_command(RX_FLIE + "/monitor_wifi_on.sh")
             time.sleep(0.5)
-            ssh.exec_command(RX_FLIE + "/monitor_wifi_on.sh")
+            #ssh.exec_command(RX_FLIE + "/monitor_wifi_on.sh")
             trans.connect(username=RX_username, password=RX_password)
         except paramiko.ssh_exception.SSHException:
             return json.dumps({"code": 0, "msg": "timeout"})
@@ -151,9 +151,10 @@ def collect_data():
         #global get_file_thread
         try:
             ssh.exec_command("du -s " + frompath)
+            ssh1.exec_command("du -s " + frompath)
             ssh1.exec_command(RX_FLIE+"/ping.sh")
             time.sleep(1)
-            ssh1.exec_command("du -s " + frompath)
+            #ssh1.exec_command("du -s " + frompath)
             ssh.exec_command(RX_FLIE+"/log.sh " + filename)
         except AttributeError:
             return json.dumps({"code": 0, "msg": "开始采集失败"})
@@ -443,7 +444,7 @@ def realtime_stop_activity():
         with open(filename, 'r') as f:
             line = f.readline()
             states = json.loads(line)
-        states['fall_detect'] = 2  # 设置状态为关闭实时监测
+        states['fall_detect'] = 1  # 设置状态为关闭实时监测
         with open(filename, 'w+') as f:
             json.dump(states, f)
         get_file_thread = None
