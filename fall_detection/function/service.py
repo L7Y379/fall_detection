@@ -304,7 +304,7 @@ def data_cut(data,sampleNum=200):
     print("mean_index",mean_index)
     return data[mean_index:mean_index+sampleNum,:]
 
-def data_cut_threshold(data,sampleNum=200,threshold=100):
+def data_cut_threshold(data,sampleNum=200,threshold=50):
     all_index = np.zeros(data.shape[1])
     all_max_var=0
     for i in range(data.shape[1]):
