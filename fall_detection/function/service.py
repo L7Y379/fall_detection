@@ -481,15 +481,17 @@ def activity_realtime_test(amplitude_list,model_path):
         result=model_test_on(subcarrier_amplitude_list_filter_all, model_path)
         if(result==0):
             pre="检测到跌倒动作"
+            code=1
         if (result == 1):
             pre="检测到非跌倒动作"
+            code=0
         print(pre)
-        data = {"code": 1, "time": time.localtime(time.time()), "predict": pre,"realtime":1}
-
     else:
         print("没有检测到活动")
         pre ="没有检测到活动"
-        data = {"code": 0, "time": time.localtime(time.time()), "predict": pre,"realtime":1}
+        code = 0
+
+    data = {"code": code, "time": time.localtime(time.time()), "predict": pre,"realtime":1}
 
     print()
     print()

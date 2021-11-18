@@ -205,7 +205,7 @@ def test(test_feature,modelName):
     crnn_model.load_weights(modelName)
     label = crnn_model.predict(test_feature)#(1,2)
     K.clear_session()
-    print("label", label.shape)
+    print("label", label)
     if(label[:,0:1]>=label[:,1:2]):
         result=0
     else:
@@ -222,7 +222,7 @@ def test_on(test_feature,modelName):
     test_feature = test_feature.reshape([int(test_feature.shape[0] / 200), 200, img_rows, img_cols])
     test_feature = np.expand_dims(test_feature, axis=4)
 
-    opt = Adam(0.0002, 0.5)
+    #opt = Adam(0.0002, 0.5)
     cnn = build_cnn(img_shape)
     rnn = build_rnn()
     #rnn.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
