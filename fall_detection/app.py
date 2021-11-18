@@ -42,13 +42,17 @@ def get_socket():
     sock = socket.socket()
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        sock.bind(("127.0.0.1", 8887))
+        #sock.bind(("192.168.31.173", 8887))
+        sock.bind(("192.168.1.117", 8887))
     except OSError:
         pass
     sock.listen(5)
     socket_thread = Thread(target=communicate, args=(sock, conns_pool))
     socket_thread.start()
-    print("conns_pool",len(conns_pool))
+
+
+    time.sleep(5)
+    print("conns_pool", len(conns_pool))
     return json.dumps({"code": 1, "msg": "建立socket连接"})
 
 @app.route('/test_socket')

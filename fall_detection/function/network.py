@@ -13,6 +13,8 @@ from sklearn.preprocessing import MinMaxScaler
 import math
 import os
 import time
+os.environ['KERAS_BACKEND']='tensorflow'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 下面为我们的模型网络设置
 nb_time_steps = 200  #时间序列长度
 nb_input_vector = 90 #输入序列
