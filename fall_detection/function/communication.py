@@ -151,20 +151,3 @@ def communicate11(sock):
     # data_json = json.dumps(data)
     # conn.send(bytes(data_json, encoding='utf-8'))
     return
-
-def socket_get():
-    data = {"code": 0, "time": time.localtime(time.time()), "predict": "pre"}
-    data_json = json.dumps(data)
-    i = 0
-    tem = len(conns_pool)
-    print("len(conns_pool)", len(conns_pool))
-    while i < tem:
-        print(0)
-        try:
-            send_msg(conns_pool[i], bytes(data_json, encoding="utf-8"))
-            print(1)
-        except BrokenPipeError:
-            conns_pool.pop(i)
-            tem = len(conns_pool)
-            print(2)
-        i = i + 1

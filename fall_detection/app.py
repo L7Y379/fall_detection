@@ -55,28 +55,6 @@ def get_socket():
     print("conns_pool", len(conns_pool))
     return json.dumps({"code": 1, "msg": "建立socket连接"})
 
-@app.route('/test_socket')
-def test_socket():
-    print("test_socket调用")
-    print("conns_pool",len(conns_pool))
-    data = {"code": 0, "time": time.localtime(time.time()), "predict": "pre"}
-    data_json = json.dumps(data)
-    i = 0
-    tem = len(conns_pool)
-    print("len(con_socket)", len(conns_pool))
-    while i < tem:
-        print(0)
-        try:
-            send_msg(conns_pool[i], bytes(data_json, encoding="utf-8"))
-            print(1)
-        except BrokenPipeError:
-            conns_pool.pop(i)
-            tem = len(conns_pool)
-            print(2)
-        i = i + 1
-    print("len(con_socket)", len(conns_pool))
-    return json.dumps({"code": 0, "msg": "已经在采集了，等会儿再试吧"})
-
 
 @app.route('/connect_rx')
 def connect_rx():
