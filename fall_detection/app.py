@@ -22,20 +22,6 @@ path = ''
 # time.sleep(10)
 # print("conns_pool",len(conns_pool))
 
-def get_socket1():
-    print("get_socket调用")
-    sock = socket.socket()
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        sock.bind(("127.0.0.1", 8887))
-    except OSError:
-        pass
-    sock.listen(5)
-    socket_thread = Thread(target=communicate, args=(sock, conns_pool))
-    socket_thread.start()
-    print("conns_pool",len(conns_pool))
-    return json.dumps({"code": 1, "msg": "建立socket连接"})
-
 @app.route('/get_socket')
 def get_socket():
     print("get_socket调用")
@@ -43,7 +29,8 @@ def get_socket():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         #sock.bind(("192.168.31.173", 8887))
-        sock.bind(("192.168.1.117", 8887))
+        #sock.bind(("192.168.1.117", 8887))
+        sock.bind((sock_ip, 8887))
     except OSError:
         pass
     sock.listen(5)
@@ -85,7 +72,7 @@ def connect_rx():
             trans = paramiko.Transport((RX_ip, RX_port))
             # 连接接收器
             ssh.connect(hostname=RX_ip, port=RX_port, username=RX_username, password=RX_password)
-            ssh.exec_command(RX_FLIE+"/monitor_wifi_on.sh")
+            #ssh.exec_command(RX_FLIE+"/monitor_wifi_on.sh")
             trans.connect(username=RX_username, password=RX_password)
         except paramiko.ssh_exception.SSHException:
             return json.dumps({"code": 0, "msg": "timeout"})
@@ -142,51 +129,12 @@ def collect_data():
             return json.dumps({"code": 0, "msg": "开始采集失败"})
     elif connectType == 2:
         try:
+            ssh.exec_command("du -s " + frompath)
+            time.sleep(0.5)
             ssh.exec_command(RX_FLIE+"/log.sh " + filename)
         except AttributeError:
             return json.dumps({"code": 0, "msg": "采集失败"})
     return json.dumps({"code": 1, "msg": "正在采集数据"})
-
-    # time.sleep(collectSleepTime)
-    #
-    # print("准备停止采集")
-    # if connectType == 1:
-    #     ssh.exec_command("du -s " + frompath)
-    #     sftp = paramiko.SFTPClient.from_transport(trans)
-    #     try:
-    #         print("frompath:",frompath)
-    #         print("topath:",topath)
-    #         sftp.get(frompath, topath)
-    #     except IOError:
-    #         return json.dumps({"code": 0, "msg": "停止采集失败"})
-    #     ssh1.exec_command("rm " + frompath)
-    # elif connectType == 2:
-    #     ssh.exec_command("du -s " + frompath)
-    #     sftp = paramiko.SFTPClient.from_transport(trans)
-    #     try:
-    #         print("frompath:",frompath)
-    #         print("topath:",topath)
-    #         sftp.get(frompath, topath)
-    #     except IOError:
-    #         return json.dumps({"code": 0, "msg": "停止采集失败"})
-    #     ssh.exec_command("rm " + frompath)
-
-    # ##记录文件名与坐标的映射关系
-    # filename_write = filename+'.dat'
-    # with open(label_path, 'a+',newline='') as f:
-    #     csv_write = csv.writer(f)
-    #     data = []
-    #     data.append(filename_write)
-    #     data.append(x_label)
-    #     data.append(y_label)
-    #     csv_write.writerow(data)
-    #
-    # #将dat文件转为csv文件
-    # topath = os.path.join(data_dir,path, filename + ".dat")
-    # csvpath = os.path.join(data_dir,"csv",path, filename + ".dat")
-    # datToCsv(topath)
-    # # get_file_thread = None
-    # return json.dumps({"code": 1, "msg": "采集成功"})
 
 
 #数据采集停止
@@ -267,8 +215,12 @@ def pre_data():
         json.dump(states, f)
     global predata_thread
     if predata_thread[0] == 0:
-        predata_thread[0] = Thread(target=pre_datalist,args=(dataList,dirPath,dirPath_pre,data_path,data_path_pre))
-        predata_thread[0].start()
+        try:
+            predata_thread[0] = Thread(target=pre_datalist,args=(dataList,dirPath,dirPath_pre,data_path,data_path_pre))
+            predata_thread[0].start()
+        except:
+            stop_thread(predata_thread[0])
+            predata_thread[0]=0
         # if(train_thread[0] == 0):
         #     return json.dumps({"code": 1, "msg": "训练完成"})
         # train_stop()
@@ -359,10 +311,11 @@ def test_model():
         data = f.readlines()
         model_name = data[-1].replace('\n','')
     model_path = os.path.join(model_dir,model_name)
+    global get_file_thread
 
     if connectType ==1:
         print("连接方式1")
-        global get_file_thread
+
         try:
             ssh1.exec_command(RX_FLIE+"/ping.sh")
             time.sleep(1)
@@ -388,28 +341,24 @@ def test_model():
     elif connectType == 2:
         print("连接方式2")
         try:
-            ssh.exec_command(RX_FLIE+"/log.sh " + filename_test)
+            ssh.exec_command(RX_FLIE + "/log.sh " + filename_test)
         except AttributeError:
-            return json.dumps({"code": 0, "msg": "采集失败"})
+            return json.dumps({"code": 0, "msg": "实时检测失败"})
+        filename = "data_model_dir//map//states.json"
+        with open(filename, 'r') as f:
+            line = f.readline()
+            states = json.loads(line)
+        states['fall_detect'] = 2  # 设置状态为实时监测中
+        with open(filename, 'w+') as f:
+            json.dump(states, f)
         if not get_file_thread:
-            print("正在采集测试数据")
+            get_file_thread = Thread(target=get_file1, args=(trans, frompath, topath, model_path))
+            get_file_thread.start()
+            print("已经开启实时检测")
+            return json.dumps({"code": 1, "msg": "已经开启实时检测"})
+
         else:
             return json.dumps({"code": 2, "msg": "正在采集中,请稍后重试"})
-
-
-    # result = model_test(topath,model_path)#0或者1，0表示跌倒，1代表无事发生
-
-    # filename = "data_model_dir//map//states.json"
-    # with open(filename,'r') as f:
-    #     line = f.readline()
-    #     states = json.loads(line)
-    # states['fall_detect'] = 1 #设置状态为定位结束
-    # with open(filename, 'w+') as f:
-    #     json.dump(states, f)
-    # if(result==0):
-    #     return json.dumps({"code":0,"msg":"检测到跌倒"})
-    # if (result == 1):
-    #     return json.dumps({"code":1,"msg":"未检测到跌倒"})
 
 #跌倒实时检测停止
 @app.route('/fall_detect_stop')
@@ -432,15 +381,20 @@ def realtime_stop_activity():
         get_file_thread = None
         return json.dumps({"code": 1, "msg": "已经关闭实时监测"})
     elif connectType == 2:
-        ssh.exec_command("du -s " + frompath)
+        ssh.exec_command("du -s " + RX_FLIE + "/test.dat")
+        stop_thread(get_file_thread)
         sftp = paramiko.SFTPClient.from_transport(trans)
-        try:
-            print("frompath:", frompath)
-            print("topath:", topath)
-            sftp.get(frompath, topath)
-        except IOError:
-            return json.dumps({"code": 0, "msg": "关闭实时监测失败"})
-        ssh.exec_command("rm " + frompath)
+        sftp.get(RX_FLIE + "/test.dat", os.path.join(test_dir, "test.dat"))
+        ssh.exec_command("rm " + RX_FLIE + "/test.dat")
+        filename = "data_model_dir//map//states.json"
+        with open(filename, 'r') as f:
+            line = f.readline()
+            states = json.loads(line)
+        states['fall_detect'] = 1  # 设置状态为关闭实时监测
+        with open(filename, 'w+') as f:
+            json.dump(states, f)
+        get_file_thread = None
+        return json.dumps({"code": 1, "msg": "已经关闭实时监测"})
     return json.dumps({"code": 1, "msg": "已经关闭实时监测"})
 
 @app.route('/fall_detect_2')
@@ -456,18 +410,10 @@ def test_model_2():
         data = f.readlines()
         model_name = data[-1].replace('\n','')
     model_path = os.path.join(model_dir,model_name)
-
-    # filename = "data_model_dir//map//states.json"
-    # with open(filename,'r') as f:
-    #     line = f.readline()
-    #     states = json.loads(line)
-    # states['fall_detect'] = 2#设置状态为定位中
-    # with open(filename, 'w+') as f:
-    #     json.dump(states, f)
-
+    global get_file_thread
     if connectType ==1:
         print("连接方式1")
-        global get_file_thread
+
         try:
             ssh1.exec_command(RX_FLIE+"/ping.sh")
             time.sleep(1)
@@ -482,9 +428,9 @@ def test_model_2():
     elif connectType == 2:
         print("连接方式2")
         try:
-            ssh.exec_command(RX_FLIE+"/log.sh " + filename_test)
+            ssh.exec_command(RX_FLIE + "/log.sh " + filename_test)
         except AttributeError:
-            return json.dumps({"code": 0, "msg": "采集失败"})
+            return json.dumps({"code": 0, "msg": "实时检测失败"})
         if not get_file_thread:
             print("正在采集测试数据")
         else:
@@ -627,4 +573,3 @@ def get_states():
 
 if __name__ == '__main__':
     app.run('0.0.0.0', port=8888, debug=True)
-    get_socket1()
