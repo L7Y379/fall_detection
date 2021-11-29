@@ -64,10 +64,7 @@ def model_train(dirname, model_path,dirName,model_name):
     while i < tem:
         try:
             send_msg(conns_pool[i], bytes(data_json, encoding="utf-8"))
-        except BrokenPipeError:
-            conns_pool.pop(i)
-            tem = len(conns_pool)
-        except ConnectionAbortedError:
+        except (BrokenPipeError, ConnectionAbortedError,ConnectionResetError):
             conns_pool.pop(i)
             tem = len(conns_pool)
         i = i + 1
@@ -167,10 +164,7 @@ def pre_datalist(dataList,dirPath,dirPath_pre,data_path,data_path_pre):
     while i < tem:
         try:
             send_msg(conns_pool[i], bytes(data_json, encoding="utf-8"))
-        except BrokenPipeError:
-            conns_pool.pop(i)
-            tem = len(conns_pool)
-        except ConnectionAbortedError:
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
             conns_pool.pop(i)
             tem = len(conns_pool)
         i = i + 1
@@ -178,10 +172,15 @@ def pre_datalist(dataList,dirPath,dirPath_pre,data_path,data_path_pre):
         path = os.path.join(dirPath, dataList[i])
         if os.path.isfile(path):
             temp_data = get_data(path)
+            if type(temp_data) == bool:
+                continue
             # 数据预处理
             temp_data = pre_handle_onlysmooth(temp_data)
             # 数据截取
-            temp_data = data_cut(temp_data)
+            if("walk" in path):
+                temp_data = data_cut_walk(temp_data)
+            else:
+                temp_data = data_cut(temp_data)
             print(temp_data.shape)
             path = os.path.join(dirPath_pre, dataList[i])
             path = path.replace(".dat", ".csv")
@@ -197,10 +196,7 @@ def pre_datalist(dataList,dirPath,dirPath_pre,data_path,data_path_pre):
             while i < tem:
                 try:
                     send_msg(conns_pool[i], bytes(data_json, encoding="utf-8"))
-                except BrokenPipeError:
-                    conns_pool.pop(i)
-                    tem = len(conns_pool)
-                except ConnectionAbortedError:
+                except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
                     conns_pool.pop(i)
                     tem = len(conns_pool)
                 i = i + 1
@@ -225,10 +221,7 @@ def pre_datalist(dataList,dirPath,dirPath_pre,data_path,data_path_pre):
     while i < tem:
         try:
             send_msg(conns_pool[i], bytes(data_json, encoding="utf-8"))
-        except BrokenPipeError:
-            conns_pool.pop(i)
-            tem = len(conns_pool)
-        except ConnectionAbortedError:
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
             conns_pool.pop(i)
             tem = len(conns_pool)
         i = i + 1
@@ -281,11 +274,13 @@ def get_data(path):
     print("amplitude_list:",len(amplitude_list))
     amplitude_list = np.array(amplitude_list)
     stream_len = len(amplitude_list)
-    amplitude_list_new = amplitude_list.reshape((stream_len,-1))
+    if(stream_len!=0):
+        amplitude_list_new = amplitude_list.reshape((stream_len,-1))
+        return amplitude_list_new
+    else:
+        return False
     #amplitude_list_new = amplitude_list_new[200:200+sampleNum] ##获取1000条数据是这样么
 
-    #
-    return amplitude_list_new
 
 def data_cut(data,sampleNum=200):
     all_index = np.zeros(data.shape[1])
@@ -303,8 +298,29 @@ def data_cut(data,sampleNum=200):
     mean_index=int(np.mean(all_index))
     print("mean_index",mean_index)
     return data[mean_index:mean_index+sampleNum,:]
+def data_cut_walk(data,sampleNum=200):
 
-def data_cut_threshold(data,sampleNum=200,threshold=50):
+    #num_cut1=int((data.shape[0]-450)/2)
+    if (data.shape[0] >= 421):
+        num_cut1=20
+        data=data[num_cut1:num_cut1+400,:]
+        idx = np.array([j for j in range(0 ,400, 2)])
+        data=data[idx]
+    elif(data.shape[0]<421 and data.shape[0]>=221):
+        num_cut1 = 20
+        data = data[num_cut1:num_cut1 + 200, :]
+    print("walk",data.shape)
+    return data
+def data_cut_jz(data,sampleNum=200):
+
+    #num_cut1=int((data.shape[0]-450)/2)
+    num_cut1=20
+    data=data[num_cut1:num_cut1+400,:]
+    idx = np.array([j for j in range(0 ,400, 2)])
+    data=data[idx]
+    print("jz",data.shape)
+    return data
+def data_cut_threshold(data,sampleNum=200,threshold=0):
     all_index = np.zeros(data.shape[1])
     all_max_var=0
     for i in range(data.shape[1]):
@@ -327,9 +343,6 @@ def data_cut_threshold(data,sampleNum=200,threshold=50):
         mean_index=-1
         #print("mean_index", mean_index)
         return False
-
-
-
 def pre_handle(raw_data):
     data_flag = 0
     for i in range(0, raw_data.shape[1]):
@@ -417,7 +430,30 @@ def get_file(trans, frompath, topath,model_path):
             # print("i", i)
         time.sleep(0.5)
 
-
+def get_file1(trans, frompath, topath,model_path):
+    #time_start = time.time()
+    sftp = paramiko.SFTPClient.from_transport(trans)
+    curpin = 0  # 这是我们读取文件的初始位置，开始时我们设置为零
+    i=0# 计数器，定期清理文件中数据
+    while True:
+        try:
+            sftp.get(frompath, topath)
+        except IOError:
+            pass
+        x, curpin = read_bf_file(topath, curpin)
+        print("读取文件大小" + str(len(x)))
+        print("读取文件位置" + str(curpin))
+        get_amplitude_phase_etc(x,model_path)
+        i=i+1
+        if(i==10):
+            ssh.exec_command("du -s " + RX_FLIE+"/test.dat")
+            ssh.exec_command(RX_FLIE+"/clean_test.sh")
+            time.sleep(1)
+            ssh.exec_command(RX_FLIE+"/log.sh test")
+            print("i",i)
+            curpin = 0
+            i=0
+        time.sleep(0.5)
 amplitude_list = []
 phase_list = []
 
@@ -503,10 +539,7 @@ def activity_realtime_test(amplitude_list,model_path):
     while i < tem:
         try:
             send_msg(conns_pool[i], bytes(data_json, encoding="utf-8"))
-        except BrokenPipeError:
-            conns_pool.pop(i)
-            tem = len(conns_pool)
-        except ConnectionAbortedError:
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
             conns_pool.pop(i)
             tem = len(conns_pool)
         i = i + 1

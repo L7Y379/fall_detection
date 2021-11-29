@@ -20,15 +20,17 @@ ssh1.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 # frompath = '/home/rtlab420/1.dat'  # 最初始化的发射器路径
 # topath = '/home/zhw/1.dat'  # 最初是化的服务器文件路径
 
+sock_ip="192.168.138.206"
+
 # 接收器的相关连接配置
-#RX_ip = "192.168.1.197"
-RX_ip = "192.168.1.113"
+RX_ip = "192.168.1.197"
+#RX_ip = "192.168.1.113"
 RX_port = 22
-#RX_username = "rtlab420"
-RX_username = "tangkai"
+RX_username = "rtlab420"
+#RX_username = "tangkai"
 RX_password = "root"
 
-connectType = 1 #1为路由器连接 2为小电脑连接
+connectType = 2 #1为路由器连接 2为小电脑连接
 
 collectSleepTime = 30
 testSleepTime = 10
@@ -37,8 +39,8 @@ testSleepTime = 10
 data_dir = "data_model_dir\\data_dir"
 model_dir = "data_model_dir\\model_dir"
 test_dir = "data_model_dir\\test_dir"
-#RX_FLIE="/home/rtlab420"
-RX_FLIE="/home/tangkai"
+RX_FLIE="/home/rtlab420"
+#RX_FLIE="/home/tangkai"
 
 # 这是service要用到和传递给各个模块的参数
 #subcarrier_amplitude_list = [0 for index in range(400)]  # 描述振幅载波初始化
