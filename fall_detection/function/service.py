@@ -320,7 +320,7 @@ def data_cut_jz(data,sampleNum=200):
     data=data[idx]
     print("jz",data.shape)
     return data
-def data_cut_threshold(data,sampleNum=200,threshold=0):
+def data_cut_threshold(data,sampleNum=200,threshold=25):
     all_index = np.zeros(data.shape[1])
     all_max_var=0
     for i in range(data.shape[1]):
@@ -399,6 +399,8 @@ def get_file(trans, frompath, topath,model_path):
     sftp = paramiko.SFTPClient.from_transport(trans)
     curpin = 0  # 这是我们读取文件的初始位置，开始时我们设置为零
     i=0# 计数器，定期清理文件中数据
+    k=0
+    time.sleep(0.3)
     while True:
         try:
             sftp.get(frompath, topath)
@@ -407,9 +409,10 @@ def get_file(trans, frompath, topath,model_path):
         x, curpin = read_bf_file(topath, curpin)
         print("读取文件大小" + str(len(x)))
         print("读取文件位置" + str(curpin))
-        get_amplitude_phase_etc(x,model_path)
+        get_amplitude_phase_etc(x,model_path,k)
         i=i+1
-        if(i==10):
+        k=1
+        if(i==15):
             ssh.exec_command("du -s " + RX_FLIE+"/test.dat")
             ssh1.exec_command("du -s " + RX_FLIE+"/test.dat")
             ssh1.exec_command(RX_FLIE+"/clean_test.sh")
@@ -435,6 +438,8 @@ def get_file1(trans, frompath, topath,model_path):
     sftp = paramiko.SFTPClient.from_transport(trans)
     curpin = 0  # 这是我们读取文件的初始位置，开始时我们设置为零
     i=0# 计数器，定期清理文件中数据
+    time.sleep(0.3)
+    k=0
     while True:
         try:
             sftp.get(frompath, topath)
@@ -443,8 +448,9 @@ def get_file1(trans, frompath, topath,model_path):
         x, curpin = read_bf_file(topath, curpin)
         print("读取文件大小" + str(len(x)))
         print("读取文件位置" + str(curpin))
-        get_amplitude_phase_etc(x,model_path)
+        get_amplitude_phase_etc(x,model_path,k)
         i=i+1
+        k = 1
         if(i==10):
             ssh.exec_command("du -s " + RX_FLIE+"/test.dat")
             ssh.exec_command(RX_FLIE+"/clean_test.sh")
@@ -460,7 +466,7 @@ phase_list = []
 
 # 输入是：csi数据流，我们前面使用函数获得了数据片段；应用类型诸如1表示呼吸；还有开始时间用于后面的时间模型时间训练用时计#算
 #获取CSI数据流的相位和振幅并加入到我们的振幅相位列表中
-def get_amplitude_phase_etc(csi_stream,model_path):
+def get_amplitude_phase_etc(csi_stream,model_path,k):
     len_csi_stream = len(csi_stream)
     #print("数据流的长度" + str(len_csi_stream))
     for i in range(len_csi_stream):
@@ -470,10 +476,10 @@ def get_amplitude_phase_etc(csi_stream,model_path):
             amplitude_list.append(abs(data))
         #phase_list.append(np.angle(data))
     #print("我们的振幅数组长度" + str(len(amplitude_list)))
-    activity_realtime_test(amplitude_list,model_path)
+    activity_realtime_test(amplitude_list,model_path,k)
 
 #实时的活动测试（监控），调用模型进行实时的监控，使用websocket端口进行信息传递
-def activity_realtime_test(amplitude_list,model_path):
+def activity_realtime_test(amplitude_list,model_path,k):
     size = len(amplitude_list)
     #time_end = time.time()
     #print(size)
@@ -484,7 +490,10 @@ def activity_realtime_test(amplitude_list,model_path):
     #     print("我们的识别数组的形状：" + str(m.shape))
     # else:
     #     m = distinguish_list
-
+    if(k==0):
+        for i in range(400):
+            subcarrier_amplitude_list.append(amplitude_list[0])
+            subcarrier_amplitude_list.pop(0)
     for i in range(size):
         # subcarrier_amplitude_list.append(amplitude_list[0][0, 0, 2])
         # subcarrier_phase_list.append(phase_list[0][0, 0, 2])
