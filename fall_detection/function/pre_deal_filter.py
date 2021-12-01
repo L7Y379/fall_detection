@@ -40,3 +40,40 @@ def hampel(X):
     xf[xi] = xmedian[xi]
     return xf
 
+# S-G滤波器
+def savgol(data, window_size, rank, type):
+    # type表示使用类型，0=使用复数，1=使用实数
+    m = int((window_size - 1) / 2)
+    odata = data[:]
+    # 处理边缘数据，首尾增加m个首尾项
+    for i in range(m):
+        odata = np.insert(odata, 0, odata[0])
+        odata = np.insert(odata, len(odata), odata[len(odata) - 1])
+    # 创建X矩阵
+    x = create_x(m, rank)
+    # 计算加权系数矩阵B
+    b = (x * (x.T * x).I) * x.T
+    a0 = b[m]
+    a0 = a0.T
+    # 计算平滑修正后的值
+    ndata = []
+    for i in range(len(data)):
+        y = [odata[i + j] for j in range(window_size)]
+        y1 = np.mat(y) * a0
+        if type == 0:
+            # 使用复数模式输入0
+            y1 = complex(y1)
+        else:  # 使用实数模式使用1
+            y1 = float(y1)
+        ndata.append(y1)
+    return ndata
+
+# S-G滤波器使用的函数
+def create_x(size, rank):
+    x = []
+    for i in range(2 * size + 1):
+        m = i - size
+        row = [m ** j for j in range(rank)]
+        x.append(row)
+    x = np.mat(x)
+    return x

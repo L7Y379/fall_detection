@@ -226,43 +226,6 @@ def pre_datalist(dataList,dirPath,dirPath_pre,data_path,data_path_pre):
             tem = len(conns_pool)
         i = i + 1
     predata_thread[0] = 0
-
-
-
-
-def datToCsv(frompath):
-    curpin = 0
-    stream, curpin = read_bf_file(frompath, curpin)  ##stream里包含的是幅值了么  curpin是啥
-    amplitude_list = []
-    for i in range(len(stream)):
-        data = stream[i]["csi"]
-        if data.shape == (3, 3, 30):
-            amplitude_list.append(abs(data))
-    print("amplitude_list:", len(amplitude_list))
-    amplitude_list = np.array(amplitude_list)
-    stream_len = len(amplitude_list)
-    amplitude_list_new = amplitude_list.reshape((stream_len, -1))
-
-    data_flag = 0
-    for i in range(0, amplitude_list_new.shape[1]):
-        # print(i)
-        data1 = amplitude_list_new[:, i].reshape(-1)
-        datatmp = smooth(hampel(data1), 25)
-
-        if data_flag == 0:
-            data = datatmp.reshape(-1, 1)
-            data_flag = 1
-        else:
-            data = np.column_stack((data, datatmp.reshape(-1, 1)))
-
-    data = data[:, 50:51]
-    t = range(10000)
-    plt.plot(t[:data.shape[0]], data, 'r')
-    # plt.show()
-    plt.savefig(r'data_model_dir\data_dir\test_tk_path_1027\smooth_data\picture\new.png')
-    plt.close()
-
-
 def get_data(path):
     curpin = 0
     stream, curpin = read_bf_file(path, curpin) ##stream里包含的是幅值了么  curpin是啥
@@ -280,8 +243,6 @@ def get_data(path):
     else:
         return False
     #amplitude_list_new = amplitude_list_new[200:200+sampleNum] ##获取1000条数据是这样么
-
-
 def data_cut(data,sampleNum=200):
     all_index = np.zeros(data.shape[1])
     for i in range(data.shape[1]):
@@ -552,123 +513,4 @@ def activity_realtime_test(amplitude_list,model_path,k):
             conns_pool.pop(i)
             tem = len(conns_pool)
         i = i + 1
-
-    # data = {"code": 1, "type": 4, "time": time_end - time_start, "predict": pre, "data": {}}
-    # if size == 0:
-    #     data["code"] = 0
-    #     data["data"]["amplitude"] = []
-    #     data["data"]["phase"] = []
-    #
-    # else:
-    #     data["data"]["amplitude"] = subcarrier_amplitude_list_filter[0:400]
-    #     data["data"]["phase"] = subcarrier_phase_list_filter[0:400]
-    #
-    # data_json = json.dumps(data)
-
-# S-G滤波器
-def savgol(data, window_size, rank, type):
-    # type表示使用类型，0=使用复数，1=使用实数
-    m = int((window_size - 1) / 2)
-    odata = data[:]
-    # 处理边缘数据，首尾增加m个首尾项
-    for i in range(m):
-        odata = np.insert(odata, 0, odata[0])
-        odata = np.insert(odata, len(odata), odata[len(odata) - 1])
-    # 创建X矩阵
-    x = create_x(m, rank)
-    # 计算加权系数矩阵B
-    b = (x * (x.T * x).I) * x.T
-    a0 = b[m]
-    a0 = a0.T
-    # 计算平滑修正后的值
-    ndata = []
-    for i in range(len(data)):
-        y = [odata[i + j] for j in range(window_size)]
-        y1 = np.mat(y) * a0
-        if type == 0:
-            # 使用复数模式输入0
-            y1 = complex(y1)
-        else:  # 使用实数模式使用1
-            y1 = float(y1)
-        ndata.append(y1)
-    return ndata
-
-# S-G滤波器使用的函数
-def create_x(size, rank):
-    x = []
-    for i in range(2 * size + 1):
-        m = i - size
-        row = [m ** j for j in range(rank)]
-        x.append(row)
-    x = np.mat(x)
-    return x
-
-import socket, base64, hashlib
-
-
-def get_headers(data):
-    '''将请求头转换为字典'''
-    header_dict = {}
-    data = str(data, encoding="utf-8")
-
-    header, body = data.split("\r\n\r\n", 1)
-    header_list = header.split("\r\n")
-    for i in range(0, len(header_list)):
-        if i == 0:
-            if len(header_list[0].split(" ")) == 3:
-                header_dict['method'], header_dict['url'], header_dict['protocol'] = header_list[0].split(" ")
-        else:
-            k, v = header_list[i].split(":", 1)
-            header_dict[k] = v.strip()
-    return header_dict
-
-# def get_data(info):
-#     payload_len = info[1] & 127
-#     if payload_len == 126:
-#         extend_payload_len = info[2:4]
-#         mask = info[4:8]
-#         decoded = info[8:]
-#     elif payload_len == 127:
-#         extend_payload_len = info[2:10]
-#         mask = info[10:14]
-#         decoded = info[14:]
-#     else:
-#         extend_payload_len = None
-#         mask = info[2:6]
-#         decoded = info[6:]
-#
-#     bytes_list = bytearray()  # 这里我们使用字节将数据全部收集，再去字符串编码，这样不会导致中文乱码
-#     for i in range(len(decoded)):
-#         chunk = decoded[i] ^ mask[i % 4]  # 解码方式
-#         bytes_list.append(chunk)
-#     body = str(bytes_list, encoding='utf-8')
-#     return body
-
-
-def send_msg(conn, msg_bytes):
-    """
-    WebSocket服务端向客户端发送消息
-    :param conn: 客户端连接到服务器端的socket对象,即： conn,address = socket.accept()
-    :param msg_bytes: 向客户端发送的字节
-    :return:
-    """
-    import struct
-
-    token = b"\x81"  # 接收的第一字节，一般都是x81不变
-    length = len(msg_bytes)
-    if length < 126:
-        token += struct.pack("B", length)
-    elif length <= 0xFFFF:
-        token += struct.pack("!BH", 126, length)
-    else:
-        token += struct.pack("!BQ", 127, length)
-
-    msg = token + msg_bytes
-    conn.send(msg)
-    return True
-
-#输入：sock，作为服务器绑定的一个socket进行监控
-#     conns_pool:这是一个连接池，表示所有的连接，这样可以实现手机端和电脑端等多个设备同时显示我们采集信息
-#这个函数将监控端口并进行连接，把所有的连接成功的连接放入连接池，上述三个函数服务于它，不用细看
-
 

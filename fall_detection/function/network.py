@@ -2,6 +2,8 @@ import json
 
 from app import train_stop
 import tensorflow as tf
+
+from function.communication import send_msg
 from function.parameter import *
 from keras.layers import LSTM, Input, Dense, Flatten, MaxPooling2D, TimeDistributed, Bidirectional, Conv2D, Conv1D, \
     MaxPooling1D,Lambda
@@ -31,27 +33,6 @@ img_shape2 = (270,200, channels)
 epochs = 500
 batch_size = 100
 latent_dim = 90
-def send_msg(conn, msg_bytes):
-    """
-    WebSocket服务端向客户端发送消息
-    :param conn: 客户端连接到服务器端的socket对象,即： conn,address = socket.accept()
-    :param msg_bytes: 向客户端发送的字节
-    :return:
-    """
-    import struct
-
-    token = b"\x81"  # 接收的第一字节，一般都是x81不变
-    length = len(msg_bytes)
-    if length < 126:
-        token += struct.pack("B", length)
-    elif length <= 0xFFFF:
-        token += struct.pack("!BH", 126, length)
-    else:
-        token += struct.pack("!BQ", 127, length)
-
-    msg = token + msg_bytes
-    conn.send(msg)
-    return True
 def build_cnn(img_shape):
     cnn = Sequential()
     cnn.add(TimeDistributed(Conv2D(8, kernel_size=(3, 3), activation='relu',strides=(1,1), padding='same',input_shape=img_shape)))
@@ -96,14 +77,6 @@ def build_rnn2():
     #     return x.T
     # encoded_repr = Lambda(get_class)(encoded_repr)
     validity = rnn(encoded_repr)
-    return Model(encoded_repr, validity)
-def build_dis():
-    dis = Sequential()
-    dis.add(Bidirectional(LSTM(units=120, input_shape=(nb_time_steps, nb_input_vector))))
-    dis.add(Dense(500, activation="relu"))
-    dis.add(Dense(9, activation="softmax"))
-    encoded_repr = Input(shape=(nb_time_steps, nb_input_vector))
-    validity = dis(encoded_repr)
     return Model(encoded_repr, validity)
 
 def train(train_feature,train_label,model_path,len_dir,dirName,model_name):
