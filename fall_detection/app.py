@@ -18,29 +18,6 @@ get_file_thread = None
 filename = ''
 path = ''
 
-#
-# time.sleep(10)
-# print("conns_pool",len(conns_pool))
-
-@app.route('/get_socket')
-def get_socket():
-    print("get_socket调用")
-    sock = socket.socket()
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        #sock.bind(("192.168.31.173", 8887))
-        #sock.bind(("192.168.1.117", 8887))
-        sock.bind((sock_ip, 8887))
-    except OSError:
-        pass
-    sock.listen(5)
-    socket_thread = Thread(target=communicate, args=(sock, conns_pool))
-    socket_thread.start()
-
-
-    time.sleep(5)
-    print("conns_pool", len(conns_pool))
-    return json.dumps({"code": 1, "msg": "建立socket连接"})
 
 
 @app.route('/connect_rx')
@@ -59,7 +36,7 @@ def connect_rx():
             # ssh.exec_command(RX_FLIE+"/monitor_wifi_on.sh")
             # time.sleep(1)
             #ssh.exec_command(RX_FLIE + "/monitor_wifi_on.sh")
-            time.sleep(0.5)
+            time.sleep(0.2)
             #ssh.exec_command(RX_FLIE + "/monitor_wifi_on.sh")
             trans.connect(username=RX_username, password=RX_password)
         except paramiko.ssh_exception.SSHException:
@@ -95,6 +72,27 @@ def disconnect_rx():
         ssh.close()
         return json.dumps({"code": 1,"msg":"success"})
 
+#和前端建立socket连接
+@app.route('/get_socket')
+def get_socket():
+    print("get_socket调用")
+    sock = socket.socket()
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        #sock.bind(("192.168.31.173", 8887))
+        #sock.bind(("192.168.1.117", 8887))
+        sock.bind((sock_ip, 8887))
+    except OSError:
+        pass
+    sock.listen(5)
+    socket_thread = Thread(target=communicate, args=(sock, conns_pool))
+    socket_thread.start()
+
+
+    time.sleep(5)
+    print("conns_pool", len(conns_pool))
+    return json.dumps({"code": 1, "msg": "建立socket连接"})
+
 #数据采集
 @app.route('/collect_data')
 def collect_data():
@@ -121,10 +119,11 @@ def collect_data():
         try:
             ssh.exec_command("du -s " + frompath)
             ssh1.exec_command("du -s " + frompath)
-            ssh1.exec_command(RX_FLIE+"/ping.sh")
+            ssh1.exec_command(RX_FLIE + "/ping_3000.sh")
             time.sleep(1)
             #ssh1.exec_command("du -s " + frompath)
             ssh.exec_command(RX_FLIE+"/log.sh " + filename)
+
         except AttributeError:
             return json.dumps({"code": 0, "msg": "开始采集失败"})
     elif connectType == 2:
@@ -572,4 +571,4 @@ def get_states():
 
 
 if __name__ == '__main__':
-    app.run('0.0.0.0', port=8888, debug=True)
+    app.run('0.0.0.0', port=8889, debug=True)

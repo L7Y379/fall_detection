@@ -1,7 +1,6 @@
 import csv
 import json
 import os
-#from function.parameter import *
 from function.Read_Bf import read_bf_file
 import pandas as pd
 from function.pre_deal_filter import *
@@ -30,11 +29,6 @@ def _async_raise(tid, exctype):
 def stop_thread(thread):
     _async_raise(thread.ident, SystemExit)
 
-#活动训练，
-#输入参数：list：训练的样本list
-#model_path, 训练好模型存放位置
-#label_num,我们的动作的类型数目，这样我们好形成one-hot数组放入训练
-# train_epoch, 训练批次
 def getlabel(path):
     path2=path.replace(".csv",".dat")
     col_name = ['path','label']
@@ -242,8 +236,7 @@ def get_data(path):
         return amplitude_list_new
     else:
         return False
-    #amplitude_list_new = amplitude_list_new[200:200+sampleNum] ##获取1000条数据是这样么
-def data_cut(data,sampleNum=200):
+def data_cut(data):
     all_index = np.zeros(data.shape[1])
     for i in range(data.shape[1]):
         max_var = 0
@@ -259,8 +252,7 @@ def data_cut(data,sampleNum=200):
     mean_index=int(np.mean(all_index))
     print("mean_index",mean_index)
     return data[mean_index:mean_index+sampleNum,:]
-def data_cut_walk(data,sampleNum=200):
-
+def data_cut_walk(data):
     #num_cut1=int((data.shape[0]-450)/2)
     if (data.shape[0] >= 421):
         num_cut1=20
@@ -269,10 +261,10 @@ def data_cut_walk(data,sampleNum=200):
         data=data[idx]
     elif(data.shape[0]<421 and data.shape[0]>=221):
         num_cut1 = 20
-        data = data[num_cut1:num_cut1 + 200, :]
+        data = data[num_cut1:num_cut1 + sampleNum, :]
     print("walk",data.shape)
     return data
-def data_cut_jz(data,sampleNum=200):
+def data_cut_jz(data):
 
     #num_cut1=int((data.shape[0]-450)/2)
     num_cut1=20
@@ -281,7 +273,7 @@ def data_cut_jz(data,sampleNum=200):
     data=data[idx]
     print("jz",data.shape)
     return data
-def data_cut_threshold(data,sampleNum=200,threshold=25):
+def data_cut_threshold(data,threshold=25):
     all_index = np.zeros(data.shape[1])
     all_max_var=0
     for i in range(data.shape[1]):
@@ -335,7 +327,7 @@ def pre_handle_onlysmooth(raw_data):
     print("数据已预处理")
     return data
 
-def get_test_data(path,sampleNum=200):
+def get_test_data(path):
     curpin = 0
     stream, curpin = read_bf_file(path, curpin) ##stream里包含的是幅值了么  curpin是啥
     amplitude_list = []
@@ -347,11 +339,6 @@ def get_test_data(path,sampleNum=200):
     stream_len = len(amplitude_list)
     amplitude_list = np.array(amplitude_list)
     amplitude_list_new = amplitude_list.reshape((stream_len,-1))
-    #amplitude_list_new = amplitude_list_new[200:200+sampleNum] ##获取1000条数据是这样么
-
-
-    # amplitude_list_new = amplitude_list.reshape((1, -1, stream_len))
-
     #
     return amplitude_list_new
 
@@ -452,7 +439,7 @@ def activity_realtime_test(amplitude_list,model_path,k):
     # else:
     #     m = distinguish_list
     if(k==0):
-        for i in range(400):
+        for i in range(500):
             subcarrier_amplitude_list.append(amplitude_list[0])
             subcarrier_amplitude_list.pop(0)
     for i in range(size):
@@ -464,7 +451,7 @@ def activity_realtime_test(amplitude_list,model_path,k):
         #phase_list.pop(0)
         subcarrier_amplitude_list.pop(0)
     #print("subcarrier_amplitude_list",np.array(subcarrier_amplitude_list).shape)
-    subcarrier_amplitude_list_filter=np.array(subcarrier_amplitude_list).reshape((400,270))
+    subcarrier_amplitude_list_filter=np.array(subcarrier_amplitude_list).reshape((500,270))
     subcarrier_amplitude_list_filter_one=pre_handle_onlysmooth(subcarrier_amplitude_list_filter[:,0:1])
     #print("subcarrier_amplitude_list_filter",subcarrier_amplitude_list_filter.shape)
     #subcarrier_phase_list_filter = smooth(hampel(np.array(subcarrier_phase_list)), 25)

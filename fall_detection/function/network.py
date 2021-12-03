@@ -20,7 +20,7 @@ import time
 os.environ['KERAS_BACKEND']='tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 下面为我们的模型网络设置
-nb_time_steps = 200  #时间序列长度
+nb_time_steps = sampleNum  #时间序列长度
 nb_input_vector = 90 #输入序列
 nb_time_steps2 = 48  #时间序列长度
 nb_input_vector2 = 270 #输入序列
@@ -28,8 +28,8 @@ ww=1
 img_rows = 15
 img_cols = 18
 channels = 1
-img_shape = (200,img_rows, img_cols, channels)
-img_shape2 = (270,200, channels)
+img_shape = (sampleNum,img_rows, img_cols, channels)
+img_shape2 = (270,sampleNum, channels)
 epochs = 500
 batch_size = 100
 latent_dim = 90
@@ -63,16 +63,16 @@ def build_cnn2(img_shape2):
     cnn.add(TimeDistributed(MaxPooling1D(pool_size=4)))
     #cnn.add(TimeDistributed(Flatten()))
     #cnn.add(Dropout(0.25))
-    #cnn.add(TimeDistributed(Dense(200, activation="relu")))
+    #cnn.add(TimeDistributed(Dense(sampleNum, activation="relu")))
     img = Input(shape=img_shape2)
     latent_repr = cnn(img)
     return Model(img, latent_repr)
 def build_rnn2():
     rnn=Sequential()
-    rnn.add(Bidirectional(LSTM(units=120, input_shape=(nb_time_steps2, nb_input_vector2))))
+    rnn.add(Bidirectional(LSTM(units=120, input_shape=(-1, nb_input_vector2))))
     rnn.add(Dense(500, activation="relu"))
     rnn.add(Dense(2, activation="softmax"))
-    encoded_repr = Input(shape=(nb_time_steps2, nb_input_vector2))
+    encoded_repr = Input(shape=(-1, nb_input_vector2))
     # def get_class(x):
     #     return x.T
     # encoded_repr = Lambda(get_class)(encoded_repr)
@@ -84,13 +84,13 @@ def train(train_feature,train_label,model_path,len_dir,dirName,model_name):
     print("train_label" + str(train_label.shape))
 
     #全局归化为0~1
-    a = train_feature.reshape(int(train_feature.shape[0] / 200), 200 * 270)
+    a = train_feature.reshape(int(train_feature.shape[0] / sampleNum), sampleNum * 270)
     a = a.T
     min_max_scaler = MinMaxScaler(feature_range=[0, 1])
     train_feature = min_max_scaler.fit_transform(a)
     print(train_feature.shape)
     train_feature = train_feature.T
-    train_feature = train_feature.reshape([train_feature.shape[0], 200, 270])
+    train_feature = train_feature.reshape([train_feature.shape[0], sampleNum, 270])
     train_feature = np.swapaxes(train_feature, 1, 2)
     train_feature = np.expand_dims(train_feature, axis=3)
     opt = Adam(0.0002, 0.5)
@@ -172,13 +172,13 @@ def test(test_feature,modelName):
     print("test_feature" + str(test_feature.shape))
 
     #全局归化为0~1
-    a = test_feature.reshape(int(test_feature.shape[0] / 200), 200 * 270)
+    a = test_feature.reshape(int(test_feature.shape[0] / sampleNum), sampleNum * 270)
     a = a.T
     min_max_scaler = MinMaxScaler(feature_range=[0, 1])
     test_feature = min_max_scaler.fit_transform(a)
     print(test_feature.shape)
     test_feature = test_feature.T
-    test_feature = test_feature.reshape([test_feature.shape[0], 200, 270])
+    test_feature = test_feature.reshape([test_feature.shape[0], sampleNum, 270])
     test_feature = np.swapaxes(test_feature, 1, 2)
     test_feature = np.expand_dims(test_feature, axis=3)
     #opt = Adam(0.0002, 0.5)
@@ -210,13 +210,13 @@ def test_on(test_feature,modelName):
     print("test_feature" + str(test_feature.shape))
 
     #全局归化为0~1
-    a = test_feature.reshape(int(test_feature.shape[0] / 200), 200 * 270)
+    a = test_feature.reshape(int(test_feature.shape[0] / sampleNum), sampleNum * 270)
     a = a.T
     min_max_scaler = MinMaxScaler(feature_range=[0, 1])
     test_feature = min_max_scaler.fit_transform(a)
     print(test_feature.shape)
     test_feature = test_feature.T
-    test_feature = test_feature.reshape([test_feature.shape[0], 200, 270])
+    test_feature = test_feature.reshape([test_feature.shape[0], sampleNum, 270])
     test_feature = np.swapaxes(test_feature, 1, 2)
     test_feature = np.expand_dims(test_feature, axis=3)
 
